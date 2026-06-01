@@ -1,0 +1,912 @@
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --navy:#14142b; --navy-2:#1d1d3d; --navy-3:#262652; --gold:#ffb01f; --gold-dim:#c98d20;
+    --ink:#f2f2f7; --ink-dim:#9b9bb5; --ink-faint:#6a6a85; --line:#2e2e57;
+    --teal:#2dd4a7; --purple:#9d8cff; --orange:#ff9d52;
+    --tiktok:#ff3b6b; --ig:#e85ab8; --fb:#4d94ff; --yt:#ff5a52; --li:#4d9fe6; --ok:#2dd4a7;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { background:var(--navy); color:var(--ink); font-family:'Hanken Grotesk',sans-serif; overscroll-behavior:none; }
+  #app { max-width:440px; margin:0 auto; min-height:100vh; padding-bottom:88px; position:relative; }
+
+  .topbar { position:sticky; top:0; z-index:50; background:linear-gradient(180deg,var(--navy) 70%,transparent); padding:18px 20px 14px; display:flex; align-items:center; justify-content:space-between; }
+  .brand { display:flex; align-items:baseline; gap:7px; }
+  .brand .b1 { font-family:'Bricolage Grotesque'; font-weight:800; font-size:19px; color:var(--gold); letter-spacing:-0.02em; }
+  .brand .b2 { font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:var(--ink); letter-spacing:-0.02em; }
+  .wk-pill { font-size:12px; font-weight:600; color:var(--ink-dim); background:var(--navy-2); border:1px solid var(--line); padding:6px 12px; border-radius:999px; white-space:nowrap; }
+
+  .screen { padding:4px 20px 20px; animation:fade .25s ease; }
+  @keyframes fade { from {opacity:0; transform:translateY(6px);} to {opacity:1; transform:none;} }
+  .screen-title { font-family:'Bricolage Grotesque'; font-weight:800; font-size:28px; letter-spacing:-0.03em; line-height:1.05; margin:6px 0 4px; }
+  .screen-sub { color:var(--ink-dim); font-size:14px; margin-bottom:16px; line-height:1.45; }
+
+  .vtoggle { display:flex; gap:0; background:var(--navy-2); border:1px solid var(--line); border-radius:12px; padding:4px; margin-bottom:18px; }
+  .vtoggle button { flex:1; background:none; border:none; color:var(--ink-dim); font-family:'Hanken Grotesk'; font-weight:600; font-size:14px; padding:9px; border-radius:9px; cursor:pointer; transition:all .15s; }
+  .vtoggle button.on { background:var(--gold); color:var(--navy); }
+
+  .stat-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:18px; }
+  .stat { background:var(--navy-2); border:1px solid var(--line); border-radius:16px; padding:14px 12px; text-align:center; }
+  .stat .num { font-family:'Bricolage Grotesque'; font-weight:800; font-size:26px; color:var(--gold); line-height:1; }
+  .stat .lbl { font-size:11px; color:var(--ink-dim); margin-top:5px; text-transform:uppercase; letter-spacing:0.06em; }
+
+  .navrow { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:16px; }
+  .navrow .nav-arrow { background:var(--navy-2); border:1px solid var(--line); color:var(--ink); width:40px; height:40px; border-radius:11px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .navrow .nav-label { font-family:'Bricolage Grotesque'; font-weight:700; font-size:16px; flex:1; text-align:center; }
+
+  .day-group { margin-bottom:22px; }
+  .day-head { display:flex; align-items:baseline; gap:10px; margin:0 0 10px; }
+  .day-head .dname { font-family:'Bricolage Grotesque'; font-weight:700; font-size:15px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink); }
+  .day-head .ddate { font-size:12px; color:var(--ink-dim); }
+  .day-head .dcount { font-size:12px; color:var(--ink-faint); }
+  .day-head .dline { flex:1; height:1px; background:var(--line); }
+
+  .card { background:var(--navy-2); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:10px; transition:border-color .2s, transform .1s; }
+  .card:active { transform:scale(0.992); }
+  .card.empty { border-style:dashed; background:transparent; display:flex; align-items:center; justify-content:center; gap:8px; color:var(--ink-faint); font-size:13px; padding:16px; cursor:pointer; }
+  .card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .slot-tag { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; padding:3px 9px; border-radius:999px; white-space:nowrap; }
+  .slot-1 { background:rgba(45,212,167,.14); color:var(--teal); }
+  .slot-2 { background:rgba(157,140,255,.14); color:var(--purple); }
+  .slot-3 { background:rgba(255,157,82,.14); color:var(--orange); }
+  .card-title { font-weight:600; font-size:15px; line-height:1.3; margin:9px 0 4px; color:var(--ink); }
+
+  .mini-dots { display:flex; gap:5px; flex-wrap:wrap; margin-top:10px; }
+  .dot { font-size:10px; font-weight:600; padding:3px 7px; border-radius:6px; background:var(--navy-3); color:var(--ink-faint); }
+  .dot.on { color:var(--navy); }
+  .dot.on.tiktok { background:var(--tiktok);} .dot.on.ig { background:var(--ig);} .dot.on.fb { background:var(--fb);} .dot.on.yt { background:var(--yt);} .dot.on.li { background:var(--li);} .dot.on.gen { background:var(--gold);}
+  .stage-row { display:flex; gap:8px; margin-top:12px; }
+  .stage-btn { flex:1; background:var(--navy-3); border:1px solid var(--line); color:var(--ink-dim); font-family:'Hanken Grotesk'; font-weight:600; font-size:12px; padding:8px; border-radius:9px; cursor:pointer; transition:all .15s; }
+  .stage-btn:active { transform:scale(0.97); }
+  .stage-btn.on.filmed { background:rgba(157,140,255,.18); border-color:var(--purple); color:var(--purple); }
+  .stage-btn.on.posted { background:rgba(45,212,167,.16); border-color:var(--ok); color:var(--ok); }
+
+  .cal-wrap { margin-bottom:18px; }
+  .cal-head { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:6px; }
+  .cal-head span { text-align:center; font-size:11px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+  .cal-cell { aspect-ratio:1/1; background:var(--navy-2); border:1px solid var(--line); border-radius:11px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative; transition:border-color .15s; }
+  .cal-cell.out { background:transparent; border-color:transparent; pointer-events:none; }
+  .cal-cell.today { border-color:var(--ink-dim); }
+  .cal-cell.sel { border-color:var(--gold); background:rgba(255,176,31,.08); }
+  .cal-cell .cc-num { font-size:14px; font-weight:600; color:var(--ink); }
+  .cal-cell.has .cc-num { color:var(--gold); }
+  .cal-cell .cc-dots { display:flex; gap:3px; margin-top:4px; height:6px; }
+  .cal-cell .cc-d { width:5px; height:5px; border-radius:50%; }
+
+  .btn { width:100%; border:none; cursor:pointer; font-family:'Hanken Grotesk'; font-weight:700; font-size:15px; padding:15px; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:8px; transition:transform .1s, opacity .2s; }
+  .btn:active { transform:scale(0.98); }
+  .btn-primary { background:var(--gold); color:var(--navy); }
+  .btn-ghost { background:var(--navy-2); color:var(--ink); border:1px solid var(--line); }
+  .btn-row { display:flex; gap:10px; }
+  .btn-row .btn { flex:1; }
+  .btn-sm { padding:11px; font-size:13px; border-radius:11px; }
+
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:12px; font-weight:600; color:var(--ink-dim); margin-bottom:7px; text-transform:uppercase; letter-spacing:0.05em; }
+  .field input, .field textarea, .field select { width:100%; background:var(--navy-2); border:1px solid var(--line); border-radius:12px; padding:13px 14px; color:var(--ink); font-family:'Hanken Grotesk'; font-size:15px; resize:none; }
+  .field input:focus, .field textarea:focus, .field select:focus { outline:none; border-color:var(--gold-dim); }
+  .field textarea { line-height:1.5; }
+  .seg { display:flex; gap:8px; }
+  .seg button { flex:1; background:var(--navy-2); border:1px solid var(--line); color:var(--ink-dim); padding:11px 6px; border-radius:11px; font-size:12px; font-weight:600; cursor:pointer; font-family:'Hanken Grotesk'; transition:all .15s; }
+  .seg button.sel-1 { background:rgba(45,212,167,.16); color:var(--teal); border-color:var(--teal); }
+  .seg button.sel-2 { background:rgba(157,140,255,.16); color:var(--purple); border-color:var(--purple); }
+  .seg button.sel-3 { background:rgba(255,157,82,.16); color:var(--orange); border-color:var(--orange); }
+
+  .idea-card { background:var(--navy-2); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:10px; cursor:pointer; transition:border-color .2s, transform .1s; }
+  .idea-card:active { transform:scale(0.992); }
+  .idea-card .ic-top { display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+  .idea-card .ic-text { font-size:14.5px; font-weight:600; line-height:1.35; color:var(--ink); }
+  .idea-card .ic-go { font-size:12px; color:var(--gold); font-weight:600; margin-top:9px; }
+  .cat-head { font-family:'Bricolage Grotesque'; font-weight:700; font-size:14px; text-transform:uppercase; letter-spacing:0.05em; margin:22px 0 10px; display:flex; align-items:center; gap:8px; }
+  .cat-head .cdot { width:9px; height:9px; border-radius:50%; }
+  .cat-acc { display:flex; align-items:center; gap:11px; padding:16px; background:var(--navy-2); border:1px solid var(--line); border-radius:14px; margin-bottom:10px; cursor:pointer; transition:border-color .15s; }
+  .cat-acc.open { border-color:var(--gold-dim); }
+  .cat-acc .ca-dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+  .cat-acc .ca-name { font-family:'Bricolage Grotesque'; font-weight:700; font-size:14px; text-transform:uppercase; letter-spacing:0.04em; }
+  .cat-acc .ca-count { margin-left:auto; font-size:12px; color:var(--ink-faint); font-weight:600; }
+  .cat-acc .ca-chev { color:var(--ink-faint); font-size:18px; display:flex; transition:transform .2s; }
+  .cat-acc.open .ca-chev { transform:rotate(180deg); color:var(--gold); }
+  .cat-body { margin:0 0 8px; animation:fade .2s ease; }
+
+  .prompt-card { background:var(--navy-2); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:10px; }
+  .prompt-card .pc-text { font-size:13px; color:var(--ink-dim); line-height:1.5; margin:0; }
+
+  .track-section { margin-bottom:16px; }
+  .track-section h4 { font-size:12px; font-weight:700; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px; }
+  .check-row { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--navy-2); border:1px solid var(--line); border-radius:12px; margin-bottom:8px; cursor:pointer; transition:all .15s; }
+  .check-row.done { border-color:var(--ok); background:rgba(45,212,167,.08); }
+  .check-box { width:24px; height:24px; border-radius:7px; border:2px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; transition:all .15s; }
+  .check-row.done .check-box { background:var(--ok); border-color:var(--ok); color:var(--navy); }
+  .check-row .cr-label { font-size:14px; font-weight:600; }
+  .check-row .cr-dot { width:9px; height:9px; border-radius:50%; margin-left:auto; }
+
+  .nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:440px; z-index:100; background:var(--navy-2); border-top:1px solid var(--line); display:grid; grid-template-columns:repeat(4,1fr); padding:8px 8px calc(8px + env(safe-area-inset-bottom)); }
+  .nav button { background:none; border:none; cursor:pointer; padding:8px 4px; display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--ink-faint); font-family:'Hanken Grotesk'; font-size:11px; font-weight:600; transition:color .15s; }
+  .nav button.active { color:var(--gold); }
+  .nav button .ico { font-size:20px; line-height:1; filter:grayscale(1); opacity:.6; transition:filter .15s, opacity .15s; }
+  .nav button.active .ico { filter:none; opacity:1; }
+
+  .modal-bg { position:fixed; inset:0; background:rgba(8,8,18,.7); z-index:200; display:flex; align-items:flex-end; justify-content:center; animation:fade .2s ease; }
+  .modal { background:var(--navy); border-top:1px solid var(--line); border-radius:22px 22px 0 0; width:100%; max-width:440px; max-height:92vh; overflow-y:auto; padding:8px 20px 28px; animation:slideUp .28s cubic-bezier(.2,.8,.2,1); }
+  @keyframes slideUp { from {transform:translateY(100%);} to {transform:none;} }
+  .modal-grip { width:40px; height:4px; background:var(--line); border-radius:99px; margin:8px auto 16px; }
+  .modal h3 { font-family:'Bricolage Grotesque'; font-weight:800; font-size:21px; margin-bottom:4px; letter-spacing:-0.02em; }
+  .edit-scroll { max-height:58vh; overflow-y:auto; margin:0 -4px; padding:0 4px 4px; }
+  .edit-actions { display:flex; flex-direction:column; gap:10px; padding-top:14px; margin-top:4px; border-top:1px solid var(--line); position:sticky; bottom:0; background:var(--navy); }
+  .edit-actions .btn { width:100%; }
+
+  .toast { position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:var(--gold); color:var(--navy); font-weight:700; font-size:14px; padding:12px 20px; border-radius:12px; z-index:300; box-shadow:0 8px 30px rgba(0,0,0,.4); animation:fade .2s ease; max-width:90%; text-align:center; }
+  .helper { background:rgba(255,176,31,.08); border:1px solid var(--gold-dim); border-radius:12px; padding:13px 14px; font-size:13px; color:var(--ink-dim); line-height:1.5; margin-bottom:16px; }
+  .helper b { color:var(--gold); }
+  .loading { text-align:center; padding:80px 20px; color:var(--ink-faint); }
+  .empty-note { text-align:center; padding:30px 20px; color:var(--ink-faint); font-size:14px; }
+
+  .goal-card { background:var(--navy-2); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:8px; }
+  .goal-card-top { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+  .goal-card-title { font-family:'Bricolage Grotesque'; font-weight:700; font-size:15px; }
+  .goal-card-pct { font-family:'Bricolage Grotesque'; font-weight:800; font-size:20px; color:var(--gold); }
+  .prog-track { height:10px; background:var(--navy-3); border-radius:99px; overflow:hidden; }
+  .prog-fill { height:100%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); border-radius:99px; transition:width .4s ease; }
+  .goal-card-note { font-size:12.5px; color:var(--ink-dim); margin-top:10px; line-height:1.45; }
+
+  .badge-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .badge { background:var(--navy-2); border:1px solid var(--line); border-radius:16px; padding:16px 12px; text-align:center; }
+  .badge.locked { opacity:0.55; }
+  .badge.got { border-color:var(--gold-dim); background:rgba(255,176,31,.06); }
+  .badge-icon { font-size:30px; line-height:1; margin-bottom:8px; filter:grayscale(1); opacity:.6; }
+  .badge.got .badge-icon { filter:none; opacity:1; }
+  .badge-name { font-family:'Bricolage Grotesque'; font-weight:700; font-size:14px; margin-bottom:4px; }
+  .badge-desc { font-size:11px; color:var(--ink-dim); line-height:1.35; min-height:30px; }
+  .badge-status { font-size:11px; font-weight:700; color:var(--ink-faint); margin-top:8px; text-transform:uppercase; letter-spacing:0.04em; }
+  .badge-status.earned { color:var(--ok); }
+
+  .celebrate { text-align:center; padding:6px 0 4px; }
+  .celebrate-burst { font-size:54px; line-height:1; margin:6px 0 10px; animation:pop .5s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes pop { from{transform:scale(0);opacity:0;} to{transform:scale(1);opacity:1;} }
+  .bdg-pop { display:flex; align-items:center; gap:12px; text-align:left; background:var(--navy-2); border:1px solid var(--gold-dim); border-radius:14px; padding:12px 14px; margin-bottom:8px; }
+  .bdg-pop-icon { font-size:32px; line-height:1; }
+  .bdg-pop-name { font-family:'Bricolage Grotesque'; font-weight:700; font-size:15px; }
+  .bdg-pop-desc { font-size:12px; color:var(--ink-dim); margin-top:2px; }
+</style>
+
+<div id="app">
+  <div class="topbar">
+    <div class="brand"><span class="b1">ARD</span><span class="b2">Content Studio</span></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="wk-pill" id="syncDot" onclick="syncPillClick()" style="cursor:pointer">Sign in</div>
+      <div class="wk-pill" id="wkPill">This Week</div>
+    </div>
+  </div>
+  <div id="view"><div class="loading">Loading your content…</div></div>
+  <div class="nav">
+    <button data-tab="ideas" onclick="go('ideas')"><span class="ico">✦</span>Ideas</button>
+    <button data-tab="week" onclick="go('week')" class="active"><span class="ico">▦</span>Plan</button>
+    <button data-tab="track" onclick="go('track')"><span class="ico">✓</span>Track</button>
+    <button data-tab="goals" onclick="go('goals')"><span class="ico">🏆</span>Goals</button>
+  </div>
+</div>
+
+<script>
+const WD = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const WD_FULL = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MON_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SLOTS = {1:'Tip / Education', 2:'Story / Observation', 3:'Proof / CTA'};
+const SLOT_VAR = {1:'teal',2:'purple',3:'orange'};
+const PLATFORMS = [
+  {k:'tiktok', label:'TikTok', cls:'tiktok'}, {k:'igReel', label:'IG Reel', cls:'ig'},
+  {k:'igGraphic', label:'IG Graphic', cls:'ig'}, {k:'facebook', label:'Facebook', cls:'fb'},
+  {k:'ytShort', label:'YT Short', cls:'yt'}, {k:'linkedin', label:'LinkedIn', cls:'li'},
+];
+const PREP = [{k:'script',label:'Script written'},{k:'screenHook',label:'Screen hook done'},{k:'filmed',label:'Filmed'},{k:'edited',label:'Edited'}];
+const STORE_KEY = 'ard_content_week_v2';
+
+// ---------- Supabase (cloud sync) ----------
+const SUPABASE_URL = 'https://uoxblhngbpkiyklsemnw.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVveGJsaG5nYnBraXlrbHNlbW53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNDc4MTYsImV4cCI6MjA5NTgyMzgxNn0.9-pePIZIFDlhqPuDHBaXApgGt-iSxYuDgVIpYgYMHRE';
+let sb = null, sbUser = null, syncing = false;
+try { if(window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON); } catch(e){}
+
+const BRAND = `You are a content assistant for ARD Solutions, a Minnesota-based digital systems consultancy that builds done-for-you growth systems for local service businesses (contractors, lawn care, trainers, churches). Brand voice: "Trusted Expert Next Door" — direct, relatable, clear, no buzzwords, no hype, no long intros. Core positioning: "I build a digital system that works 24/7 so you don't have to." The offer is a comprehensive 4-stack system, not individual services. Target audience: local service business owners in the US who are great at their trade but invisible online or missing leads.`;
+
+const IDEAS = [
+  // ===== TIP / EDUCATION (15) =====
+  {s:1, n:'all', hook:'name a common mistake', t:'Why your Google Business Profile matters more than your website'},
+  {s:1, n:'all', hook:'question', t:'The 3 things customers check before they ever call you'},
+  {s:1, n:'all', hook:'name a common mistake', t:'Why "we\'ll get back to you" quietly loses you the job'},
+  {s:1, n:'all', hook:'stat', t:'How fast you respond decides who actually gets hired'},
+  {s:1, n:'all', hook:'call out the viewer', t:'Being online and being findable are not the same thing'},
+  {s:1, n:'all', hook:'question', t:'What a "digital system" actually means for a one-person business'},
+  {s:1, n:'all', hook:'name a common mistake', t:'Why posting once a month does nothing for your business'},
+  {s:1, n:'all', hook:'call out the viewer', t:'How to stop missing leads while you\'re on the job'},
+  {s:1, n:'all', hook:'name a common mistake', t:'The follow-up most owners forget that wins the job'},
+  {s:1, n:'all', hook:'stat', t:'Why most leads never get a second text — and why that\'s costing you'},
+  {s:1, n:'all', hook:'question', t:'What makes a customer trust you before they ever meet you'},
+  {s:1, n:'all', hook:'stat', t:'Why you lose jobs before you ever send a quote'},
+  {s:1, n:'all', hook:'name a common mistake', t:'The reason customers don\'t come back after one job'},
+  {s:1, n:'all', hook:'question', t:'Why your booking process is costing you customers'},
+  {s:1, n:'all', hook:'call out the viewer', t:'Why new customers can\'t find your hours or info online'},
+
+  // ===== STORY / OBSERVATION (15) =====
+  {s:2, n:'all', hook:'name a common mistake', t:'I called 3 companies. Two never answered. Guess who got paid.'},
+  {s:2, n:'all', hook:'call out the viewer', t:'"I almost picked the other company — I couldn\'t find you online"'},
+  {s:2, n:'all', hook:'question', t:'Watching a business owner check their phone 40 times mid-job'},
+  {s:2, n:'all', hook:'name a common mistake', t:'A great business with zero reviews — and what it cost them'},
+  {s:2, n:'all', hook:'call out the viewer', t:'The lead that went cold because nobody followed up'},
+  {s:2, n:'all', hook:'question', t:'The owner who was "too busy" to fix the thing losing him money'},
+  {s:2, n:'all', hook:'stat', t:'The competitor who won — not because they were better, but faster'},
+  {s:2, n:'all', hook:'name a common mistake', t:'The voicemail nobody checked until it was too late'},
+  {s:2, n:'all', hook:'call out the viewer', t:'"I didn\'t even know you did that" — a customer you already had'},
+  {s:2, n:'all', hook:'question', t:'What I noticed about the businesses that never run out of work'},
+  {s:2, n:'all', hook:'name a common mistake', t:'The business that was the best in town — and totally invisible'},
+  {s:2, n:'all', hook:'name a common mistake', t:'Losing jobs to a worse competitor with better reviews'},
+  {s:2, n:'all', hook:'question', t:'The customer who left because signing up was a hassle'},
+  {s:2, n:'all', hook:'call out the viewer', t:'The business no one could find when they needed it most'},
+  {s:2, n:'all', hook:'stat', t:'Two businesses, same service — why one stays booked and one doesn\'t'},
+
+  // ===== PROOF / CTA (15) =====
+  {s:3, n:'all', hook:'stat', t:'What 30 days with a 24/7 system actually looks like'},
+  {s:3, n:'all', hook:'call out the viewer', t:'If your phone isn\'t ringing, here\'s the real reason'},
+  {s:3, n:'all', hook:'question', t:'The 4-stack system explained in 30 seconds'},
+  {s:3, n:'all', hook:'call out the viewer', t:'Stop chasing leads. Build something that brings them to you.'},
+  {s:3, n:'all', hook:'stat', t:'"I booked 3 jobs this week from people who found me on Google"'},
+  {s:3, n:'all', hook:'call out the viewer', t:'You\'re one system away from never missing a lead again'},
+  {s:3, n:'all', hook:'name a common mistake', t:'You don\'t need more ads. You need to stop leaking leads.'},
+  {s:3, n:'all', hook:'question', t:'What would change if every lead got answered in 60 seconds?'},
+  {s:3, n:'all', hook:'call out the viewer', t:'Your competitors aren\'t working harder. They\'re using a system.'},
+  {s:3, n:'all', hook:'stat', t:'From missed calls to booked jobs — what the system does day one'},
+  {s:3, n:'all', hook:'call out the viewer', t:'Done-for-you, not one-more-thing-to-manage'},
+  {s:3, n:'all', hook:'question', t:'What if your business kept working after you clocked out?'},
+  {s:3, n:'all', hook:'stat', t:'Before & after: what a lead flow looks like once the system is live'},
+  {s:3, n:'all', hook:'call out the viewer', t:'Fill your schedule without cold-calling a single customer'},
+  {s:3, n:'all', hook:'stat', t:'How an owner filled their calendar without chasing DMs'},
+];
+const AUDIENCES = ['All local service businesses','Contractors / general construction','Plumbers','Electricians','HVAC companies','Roofers','Lawn care & landscaping','Cleaning services','Pest control','Auto repair shops','Personal trainers & gyms','Salons & barbershops','Med spas / dental / clinics','Real estate agents','Churches & nonprofits'];
+const NICHE_TO_AUDIENCE = {all:'All local service businesses', contractor:'Contractors / general construction', lawn:'Lawn care & landscaping', trainer:'Personal trainers & gyms', church:'Churches & nonprofits'};
+
+let state = { items: [], badges: {} };
+let tab = 'week';
+let weekView = 'week';
+let weekStart;
+let monthCur;
+let selectedDate = null;
+let openCat = null;
+let pendingIdea = null;
+
+function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseISO(s){ const p=s.split('-').map(Number); return new Date(p[0], p[1]-1, p[2]); }
+function todayISO(){ return iso(new Date()); }
+function addDays(s, n){ const d=parseISO(s); d.setDate(d.getDate()+n); return iso(d); }
+function mondayOf(s){ const d=parseISO(s); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); return iso(d); }
+function weekdayIdx(s){ return (parseISO(s).getDay()+6)%7; }
+function fmtShort(s){ const d=parseISO(s); return WD[weekdayIdx(s)]+' '+MON[d.getMonth()]+' '+d.getDate(); }
+function weekdayFull(s){ return WD_FULL[weekdayIdx(s)]; }
+
+function normalizeState(){
+  if(!state.items) state.items=[];
+  if(!state.badges) state.badges={};
+  const thisMon = mondayOf(todayISO());
+  state.items.forEach(it=>{
+    if(!it.date && it.day){ const idx=WD_FULL.indexOf(it.day); if(idx>=0) it.date=addDays(thisMon, idx); delete it.day; }
+  });
+}
+async function loadState(){
+  let loaded=null;
+  // 1) cloud (Supabase) when signed in — this is the source of truth across devices
+  if(sb && sbUser){
+    try{
+      const { data, error } = await sb.from('content_state').select('data').eq('user_id', sbUser.id).maybeSingle();
+      if(!error && data && data.data) loaded = JSON.stringify(data.data);
+    }catch(e){}
+  }
+  // 2) Claude artifact storage (works inside the chat)
+  if(!loaded){ try{ const r=await window.storage.get(STORE_KEY); if(r&&r.value) loaded=r.value; }catch(e){} }
+  // 3) browser localStorage (offline / standalone)
+  if(!loaded){ try{ const ls=localStorage.getItem(STORE_KEY); if(ls) loaded=ls; }catch(e){} }
+  if(loaded){ try{ state=JSON.parse(loaded); }catch(e){} }
+  normalizeState();
+  // Sync any already-earned badges silently (no celebration for past progress)
+  const earned=computeEarned();
+  let changed=false;
+  Object.keys(earned).forEach(id=>{ if(earned[id] && !state.badges[id]){ state.badges[id]=todayISO(); changed=true; } });
+  if(changed) await saveState();
+}
+async function saveState(){
+  const data=JSON.stringify(state);
+  let saved=false;
+  // always keep a local copy (offline + instant)
+  try{ localStorage.setItem(STORE_KEY, data); saved=true; }catch(e){}
+  try{ await window.storage.set(STORE_KEY, data); saved=true; }catch(e){}
+  // push to the cloud when signed in
+  if(sb && sbUser){
+    try{
+      const { error } = await sb.from('content_state').upsert({ user_id: sbUser.id, data: state, updated_at: new Date().toISOString() });
+      if(!error) saved=true;
+      updateSyncPill(error ? 'error' : 'ok');
+    }catch(e){ updateSyncPill('error'); }
+  }
+  if(!saved) toast('Could not save — try again');
+}
+function updateSyncPill(status){
+  const p=document.getElementById('syncDot'); if(!p) return;
+  if(status==='ok'){ p.textContent='☁ Synced'; p.style.color='var(--ok)'; }
+  else if(status==='error'){ p.textContent='⚠ Sync issue'; p.style.color='var(--orange)'; }
+}
+
+// ---------- badges / goals ----------
+function postedCards(){ return state.items.filter(i=>i.title && PLATFORMS.every(p=>i.status[p.k])); }
+function titledCards(){ return state.items.filter(i=>i.title); }
+function longestPostStreak(){
+  const days=[...new Set(postedCards().map(i=>i.date))].sort();
+  if(!days.length) return 0;
+  let best=1, run=1;
+  for(let i=1;i<days.length;i++){ if(addDays(days[i-1],1)===days[i]){ run++; best=Math.max(best,run);} else run=1; }
+  return best;
+}
+function anyFullDay(){
+  const byDate={}; titledCards().forEach(i=>{ (byDate[i.date]=byDate[i.date]||[]).push(i); });
+  return Object.values(byDate).some(arr=>arr.length>=3 && arr.every(i=>PLATFORMS.every(p=>i.status[p.k])));
+}
+function anyFullWeek(){
+  const byWk={}; titledCards().forEach(i=>{ const w=mondayOf(i.date); (byWk[w]=byWk[w]||[]).push(i); });
+  return Object.values(byWk).some(arr=>arr.length>=3 && arr.every(i=>PLATFORMS.every(p=>i.status[p.k])));
+}
+const BADGES = [
+  {id:'first',   icon:'🌱', name:'First Post',     desc:'Post your first piece of content.', test:()=>postedCards().length>=1, prog:()=>({c:Math.min(postedCards().length,1),t:1})},
+  {id:'fullday', icon:'📅', name:'Full Day',       desc:'Post all 3 slots in a single day.', test:anyFullDay},
+  {id:'fullweek',icon:'🏆', name:'Full Week',      desc:'Ship a whole week\'s plan (3+ posts, all posted).', test:anyFullWeek},
+  {id:'writer',  icon:'✍️', name:'Scriptwriter',   desc:'Write 10 scripts.', test:()=>titledCards().filter(i=>i.script).length>=10, prog:()=>({c:titledCards().filter(i=>i.script).length,t:10})},
+  {id:'filmer',  icon:'🎬', name:'On a Roll',       desc:'Film 10 pieces of content.', test:()=>titledCards().filter(i=>i.status.filmed).length>=10, prog:()=>({c:titledCards().filter(i=>i.status.filmed).length,t:10})},
+  {id:'streak5', icon:'🔥', name:'Hot Streak',      desc:'Post something 5 days in a row.', test:()=>longestPostStreak()>=5, prog:()=>({c:Math.min(longestPostStreak(),5),t:5})},
+  {id:'p10',     icon:'🚀', name:'10 Posts',        desc:'Post 10 pieces total.', test:()=>postedCards().length>=10, prog:()=>({c:postedCards().length,t:10})},
+  {id:'p25',     icon:'💪', name:'25 Posts',        desc:'Post 25 pieces total.', test:()=>postedCards().length>=25, prog:()=>({c:postedCards().length,t:25})},
+  {id:'p50',     icon:'⭐', name:'50 Posts',        desc:'Post 50 pieces total.', test:()=>postedCards().length>=50, prog:()=>({c:postedCards().length,t:50})},
+  {id:'p100',    icon:'👑', name:'100 Posts',       desc:'Post 100 pieces total.', test:()=>postedCards().length>=100, prog:()=>({c:postedCards().length,t:100})},
+];
+function computeEarned(){ const out={}; BADGES.forEach(b=>{ try{ out[b.id]=!!b.test(); }catch(e){ out[b.id]=false; } }); return out; }
+async function celebrateNewBadges(){
+  const earned=computeEarned();
+  const fresh=BADGES.filter(b=>earned[b.id] && !state.badges[b.id]);
+  if(!fresh.length) return false;
+  fresh.forEach(b=>{ state.badges[b.id]=todayISO(); });
+  await saveState();
+  const list=fresh.map(b=>`<div class="bdg-pop"><div class="bdg-pop-icon">${b.icon}</div><div><div class="bdg-pop-name">${b.name}</div><div class="bdg-pop-desc">${esc(b.desc)}</div></div></div>`).join('');
+  modal(`<div class="celebrate">
+    <div class="celebrate-burst">🎉</div>
+    <h3 style="text-align:center">Badge unlocked!</h3>
+    <div style="margin:14px 0">${list}</div>
+    <button class="btn btn-primary" onclick="closeModal();render()">Keep it going</button>
+  </div>`);
+  return true;
+}
+
+function newItem(date, slot){
+  return { id:'i'+Date.now()+Math.floor(Math.random()*999), date, slot, title:'', screenHook:'', hook:'', script:'',
+    status:{script:false,screenHook:false,filmed:false,edited:false,tiktok:false,igReel:false,igGraphic:false,facebook:false,ytShort:false,linkedin:false} };
+}
+function itemsForDate(d){ return state.items.filter(i=>i.date===d).sort((a,b)=>a.slot-b.slot); }
+function getItem(id){ return state.items.find(i=>i.id===id); }
+function openSlot(date, preferred){
+  const used = itemsForDate(date).filter(i=>i.title).map(i=>i.slot);
+  if(!used.includes(preferred)) return preferred;
+  for(const s of [1,2,3]) if(!used.includes(s)) return s;
+  return null;
+}
+
+function go(t){ tab=t; document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===t)); render(); window.scrollTo(0,0); }
+function render(){
+  const v=document.getElementById('view');
+  if(tab==='week') v.innerHTML=renderPlan();
+  else if(tab==='ideas') v.innerHTML=renderIdeas();
+  else if(tab==='track') v.innerHTML=renderTrack();
+  else if(tab==='goals') v.innerHTML=renderGoals();
+  updatePill();
+}
+function updatePill(){
+  const p=document.getElementById('wkPill');
+  if(tab==='week' && weekView==='month'){ const d=new Date(monthCur.y, monthCur.m, 1); p.textContent=MON_FULL[monthCur.m]+' '+monthCur.y; }
+  else if(tab==='week'){ const e=addDays(weekStart,6); p.textContent=MON[parseISO(weekStart).getMonth()]+' '+parseISO(weekStart).getDate()+'–'+parseISO(e).getDate(); }
+  else p.textContent='ARD';
+}
+
+function rangeStats(dates){
+  const set=new Set(dates);
+  const its=state.items.filter(i=>i.title && set.has(i.date));
+  let filmed=0, posted=0;
+  its.forEach(i=>{ if(i.status.filmed)filmed++; if(PLATFORMS.every(p=>i.status[p.k]))posted++; });
+  return {total:its.length, filmed, posted};
+}
+
+function slotCardsHTML(date){
+  const items=itemsForDate(date);
+  let h='';
+  [1,2,3].forEach(slot=>{
+    const it=items.find(i=>i.slot===slot && i.title);
+    if(it){
+      const dots=PLATFORMS.map(p=>`<span class="dot ${it.status[p.k]?'on '+p.cls:''}">${p.label}</span>`).join('');
+      const isPosted = PLATFORMS.every(p=>it.status[p.k]);
+      h+=`<div class="card" onclick="openEdit('${it.id}')">
+        <div class="card-top"><span class="slot-tag slot-${slot}">${SLOTS[slot]}</span>
+          <span class="dot ${it.script?'on gen':''}">${it.script?'★ Script':'no script'}</span></div>
+        <div class="card-title">${esc(it.title)}</div><div class="mini-dots">${dots}</div>
+        <div class="stage-row">
+          <button class="stage-btn ${it.status.filmed?'on filmed':''}" onclick="event.stopPropagation();toggleFilmed('${it.id}')">${it.status.filmed?'✓ Filmed':'Filmed'}</button>
+          <button class="stage-btn ${isPosted?'on posted':''}" onclick="event.stopPropagation();togglePosted('${it.id}')">${isPosted?'✓ Posted':'Posted'}</button>
+        </div></div>`;
+    } else {
+      h+=`<div class="card empty" onclick="openNew('${date}',${slot})"><span style="color:var(--${SLOT_VAR[slot]})">+</span> Add ${SLOTS[slot]}</div>`;
+    }
+  });
+  return h;
+}
+async function toggleFilmed(id){ const it=getItem(id); it.status.filmed=!it.status.filmed; await saveState(); render(); await celebrateNewBadges(); }
+async function togglePosted(id){ const it=getItem(id); const isPosted=PLATFORMS.every(p=>it.status[p.k]); PLATFORMS.forEach(p=>it.status[p.k]=!isPosted); await saveState(); render(); await celebrateNewBadges(); }
+
+function renderPlan(){
+  let html=`<div class="screen">
+    <div class="screen-title">Plan</div>
+    <div class="screen-sub">3 ideas a day. Tap a card to add or edit. One idea → all 5 platforms.</div>
+    <div class="vtoggle">
+      <button class="${weekView==='week'?'on':''}" onclick="setView('week')">Week</button>
+      <button class="${weekView==='month'?'on':''}" onclick="setView('month')">Month</button>
+    </div>`;
+  html += weekView==='week' ? renderWeekBody() : renderMonthBody();
+  html += `<button class="btn btn-primary" onclick="go('ideas')" style="margin-top:6px">✦ Browse idea library</button></div>`;
+  return html;
+}
+
+function renderWeekBody(){
+  const dates=[]; for(let i=0;i<7;i++) dates.push(addDays(weekStart,i));
+  const c=rangeStats(dates);
+  let html=`<div class="stat-row">
+      <div class="stat"><div class="num">${c.total}</div><div class="lbl">Ideas</div></div>
+      <div class="stat"><div class="num">${c.filmed}</div><div class="lbl">Filmed</div></div>
+      <div class="stat"><div class="num">${c.posted}</div><div class="lbl">Posted</div></div>
+    </div>
+    <div class="navrow">
+      <button class="nav-arrow" onclick="weekStep(-7)">‹</button>
+      <div class="nav-label">${MON[parseISO(weekStart).getMonth()]} ${parseISO(weekStart).getDate()} – ${MON[parseISO(addDays(weekStart,6)).getMonth()]} ${parseISO(addDays(weekStart,6)).getDate()}</div>
+      <button class="nav-arrow" onclick="weekStep(7)">›</button>
+    </div>`;
+  dates.forEach(date=>{
+    const filled=itemsForDate(date).filter(i=>i.title).length;
+    const isToday = date===todayISO();
+    html+=`<div class="day-group">
+      <div class="day-head"><span class="dname">${weekdayFull(date)}</span><span class="ddate">${MON[parseISO(date).getMonth()]} ${parseISO(date).getDate()}${isToday?' · today':''}</span><span class="dcount">${filled}/3</span><span class="dline"></span></div>
+      ${slotCardsHTML(date)}</div>`;
+  });
+  return html;
+}
+
+function renderMonthBody(){
+  const y=monthCur.y, m=monthCur.m;
+  const monthDates=[];
+  const dim=new Date(y, m+1, 0).getDate();
+  for(let d=1; d<=dim; d++) monthDates.push(iso(new Date(y,m,d)));
+  const c=rangeStats(monthDates);
+  let html=`<div class="stat-row">
+      <div class="stat"><div class="num">${c.total}</div><div class="lbl">Ideas</div></div>
+      <div class="stat"><div class="num">${c.filmed}</div><div class="lbl">Filmed</div></div>
+      <div class="stat"><div class="num">${c.posted}</div><div class="lbl">Posted</div></div>
+    </div>
+    <div class="navrow">
+      <button class="nav-arrow" onclick="monthStep(-1)">‹</button>
+      <div class="nav-label">${MON_FULL[m]} ${y}</div>
+      <button class="nav-arrow" onclick="monthStep(1)">›</button>
+    </div>
+    <div class="cal-wrap">
+      <div class="cal-head">${WD.map(w=>`<span>${w}</span>`).join('')}</div>
+      <div class="cal-grid">`;
+  const lead=(new Date(y,m,1).getDay()+6)%7;
+  for(let i=0;i<lead;i++) html+=`<div class="cal-cell out"></div>`;
+  for(let d=1; d<=dim; d++){
+    const ds=iso(new Date(y,m,d));
+    const items=itemsForDate(ds).filter(i=>i.title);
+    const has=items.length>0;
+    const dots=items.map(i=>`<span class="cc-d" style="background:var(--${SLOT_VAR[i.slot]})"></span>`).join('');
+    const cls=[has?'has':'', ds===todayISO()?'today':'', ds===selectedDate?'sel':''].join(' ');
+    html+=`<div class="cal-cell ${cls}" onclick="selectDay('${ds}')">
+      <span class="cc-num">${d}</span><span class="cc-dots">${dots}</span></div>`;
+  }
+  html+=`</div></div>`;
+  if(selectedDate && parseISO(selectedDate).getMonth()===m && parseISO(selectedDate).getFullYear()===y){
+    html+=`<div class="day-group">
+      <div class="day-head"><span class="dname">${weekdayFull(selectedDate)}</span><span class="ddate">${MON[parseISO(selectedDate).getMonth()]} ${parseISO(selectedDate).getDate()}</span><span class="dcount">${itemsForDate(selectedDate).filter(i=>i.title).length}/3</span><span class="dline"></span></div>
+      ${slotCardsHTML(selectedDate)}</div>`;
+  } else {
+    html+=`<div class="empty-note">Tap any day to add its 3 posts.</div>`;
+  }
+  return html;
+}
+
+function setView(v){ weekView=v; if(v==='month' && !selectedDate){ const t=todayISO(); if(parseISO(t).getMonth()===monthCur.m) selectedDate=t; } render(); window.scrollTo(0,0); }
+function weekStep(n){ weekStart=addDays(weekStart,n); render(); }
+function monthStep(n){ let m=monthCur.m+n, y=monthCur.y; if(m<0){m=11;y--;} if(m>11){m=0;y++;} monthCur={y,m}; selectedDate=null; render(); }
+function selectDay(ds){ selectedDate = (selectedDate===ds? null : ds); render(); }
+
+function renderIdeas(){
+  let html = `<div class="screen">
+    <div class="screen-title">Idea Library</div>
+    <div class="screen-sub">Built from your voice and offer. Pick a type below, then tap an idea — you'll choose who it's for on the next screen.</div>`;
+  [1,2,3].forEach(slot=>{
+    const list = IDEAS.filter(i=>i.s===slot);
+    if(!list.length) return;
+    const isOpen = openCat===slot;
+    html += `<div class="cat-acc ${isOpen?'open':''}" onclick="toggleCat(${slot})">
+        <span class="ca-dot" style="background:var(--${SLOT_VAR[slot]})"></span>
+        <span class="ca-name">${SLOTS[slot]}</span>
+        <span class="ca-count">${list.length} idea${list.length!==1?'s':''}</span>
+        <span class="ca-chev"><i class="ti ti-chevron-down"></i></span></div>`;
+    if(isOpen){
+      html += `<div class="cat-body">`;
+      list.forEach(idea=>{
+        const gi = IDEAS.indexOf(idea);
+        html += `<div class="idea-card" onclick="useIdea(${gi})">
+          <div class="ic-top"><span class="slot-tag slot-${slot}">${SLOTS[slot]}</span></div>
+          <div class="ic-text">${esc(idea.t)}</div>
+          <div class="ic-go">Use this idea →</div></div>`;
+      });
+      html += `</div>`;
+    }
+  });
+  html += `<button class="btn btn-primary" onclick="shuffleIdea()" style="margin-top:6px">🎲 Shuffle idea</button>`;
+  html += `<div class="cat-head"><span class="cdot" style="background:var(--gold)"></span>Tools</div>`;
+  html += `<div class="helper"><b>Batch tip:</b> Tap several ideas across the month, generate all the scripts in one Claude sitting, then film them back-to-back.</div>`;
+  html += `<div class="btn-row" style="margin-bottom:10px">
+      <button class="btn btn-ghost btn-sm" onclick="openImport()">Bulk import scripts</button>
+      <button class="btn btn-ghost btn-sm" onclick="openBlank()">Blank custom idea</button></div>`;
+  html += `<button class="btn btn-ghost btn-sm" onclick="confirmReset()" style="color:var(--ink-faint)">Reset / clear everything</button>`;
+  html += `</div>`;
+  return html;
+}
+function toggleCat(s){ openCat = (openCat===s ? null : s); render(); }
+function shuffleIdea(){
+  const idx = Math.floor(Math.random()*IDEAS.length);
+  const idea = IDEAS[idx];
+  modal(`
+    <h3>🎲 Your shuffled idea</h3>
+    <div class="screen-sub" style="margin-bottom:14px">Random pick from your library. Like it? Continue to set it up and get the prompt.</div>
+    <div class="idea-card" style="cursor:default;margin:0 0 18px">
+      <div class="ic-top"><span class="slot-tag slot-${idea.s}">${SLOTS[idea.s]}</span></div>
+      <div class="ic-text">${esc(idea.t)}</div></div>
+    <button class="btn btn-primary" onclick="useIdea(${idx})">Yes — use this idea →</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="shuffleIdea()">🎲 Shuffle again</button>
+  `);
+}
+
+function dayOptions(){
+  let opts='';
+  for(let i=0;i<28;i++){ const ds=addDays(todayISO(),i); const filled=itemsForDate(ds).filter(x=>x.title).length; opts+=`<option value="${ds}">${fmtShort(ds)} — ${filled}/3</option>`; }
+  return opts;
+}
+
+function useIdea(idx){
+  pendingIdea = IDEAS[idx];
+  const defAud = NICHE_TO_AUDIENCE[pendingIdea.n] || 'All local service businesses';
+  const audOpts = AUDIENCES.map(a=>`<option ${a===defAud?'selected':''}>${a}</option>`).join('');
+  modal(`
+    <h3>Use this idea</h3>
+    <div class="idea-card" style="cursor:default;margin:10px 0 16px">
+      <div class="ic-top"><span class="slot-tag slot-${pendingIdea.s}">${SLOTS[pendingIdea.s]}</span></div>
+      <div class="ic-text">${esc(pendingIdea.t)}</div></div>
+    <div class="field"><label>Who is this for?</label><select id="useWho">${audOpts}</select></div>
+    <div class="field"><label>Add to which day?</label><select id="useDay">${dayOptions()}</select></div>
+    <div class="field"><label>Hook style</label>
+      <select id="useHook">
+        <option ${pendingIdea.hook==='question'?'selected':''}>question</option>
+        <option ${pendingIdea.hook==='stat'?'selected':''}>stat</option>
+        <option ${pendingIdea.hook==='call out the viewer'?'selected':''}>call out the viewer</option>
+        <option ${pendingIdea.hook==='name a common mistake'?'selected':''}>name a common mistake</option>
+      </select></div>
+    <div class="field"><label>Length</label><select id="useLen"><option>15</option><option>30</option><option selected>60</option><option>90</option></select></div>
+    <div class="helper" style="margin-bottom:14px">Tapping below adds this to your plan as a draft and builds one prompt covering the <b>Reels/TikTok script, LinkedIn post, image graphic, and a B-roll shot list</b>. Paste it into a Claude chat to get the whole package back.</div>
+    <button class="btn btn-primary" onclick="commitIdea()">Add to plan & copy prompt</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="justCopyIdea()">Just copy the prompt</button>
+  `);
+}
+function buildPrompt(ideaText, hook, len, audience){
+  return `${BRAND}
+
+I'm creating one piece of content from a single idea and repurposing it across platforms. Give me the full package below for this idea.
+
+Idea: "${ideaText}"
+Who this is for: ${audience||'All local service businesses'}
+Hook style: ${hook}
+Length: ~${len} seconds of spoken content
+
+Speak directly to that audience throughout — use their world, their jobs, and the problems they actually run into.
+
+Produce ALL of the following, with clear section headers:
+
+=== 1. REELS / TIKTOK SCRIPT ===
+SCREEN HOOK — big bold text, 1 line, all caps, stops the scroll
+HOOK — first 3 seconds spoken
+SCRIPT — word-for-word with [PAUSE] and [HOLD UP TEXT] cues
+ON-SCREEN TEXT — 3–5 overlays, under 6 words each
+CAPTION — full post copy with a soft CTA to ARD Solutions
+HASHTAGS — 8–10 relevant tags
+
+=== 2. LINKEDIN POST ===
+Same idea, reworked for LinkedIn — professional but plainspoken, no fluff, no "excited to announce" energy. Use this structure:
+- Open with a strong scroll-stopping line (an observation, stat, or "the new [X] in your area is..." style hook).
+- Short punchy lines with line breaks between thoughts. No walls of text.
+- Include a list where it fits — use dashes (–) for the bullets (e.g. what the system does, what it eliminates). Lists are expected, not optional.
+- Build contrast (e.g. "No missed calls. No forgotten texts. No leads slipping through.").
+- End with a direct CTA or directive in the style of "If you want to [outcome], DM me '[WORD]'. I'll show you exactly how to set this up." Only end on a thought-provoking question instead if a question genuinely fits the idea better.
+- 2–3 hashtags max.
+
+=== 3. IMAGE GRAPHIC ===
+GRAPHIC TEXT — the headline, subline, and footer to put on a branded quote-card graphic sized for Instagram (vertical 4:5, 1080x1350). Use the ARD brand palette: mint green #BCFFCE, royal blue (#4169E1), black, and white. Suggest which colors go where (background, headline, accent) for strong contrast.
+IMAGE PROMPT — a text-to-image prompt for a photo-based alternative. MUST be vertical portrait, 4:5 aspect ratio (1080x1350), built for Instagram. Compose it so the top half is clean negative space for the headline text overlay, with the subject in the lower portion. No text or logos in the image itself. End the prompt with "--ar 4:5, vertical portrait orientation".
+CANVA NOTES — quick guidance on laying it out in Canva using a 1080x1350 (4:5) portrait canvas and the brand colors above (mint green #BCFFCE, royal blue, black, white): headline top, subline below it, footer bar with ardsolutions.net at the bottom.
+
+=== 4. B-ROLL / VIDEO SHOT LIST ===
+A shot-by-shot B-roll plan that follows the script beat by beat, so the talking-head footage can be cut over with supporting visuals. For each beat:
+- SCRIPT BEAT — the line or moment from the script this shot covers (quote a few words so it's easy to match).
+- SHOT — what to film or source (e.g. close-up of a phone ringing unanswered, hands working on a job, a calendar filling up). Favor simple shots an owner can capture on a phone.
+- TYPE — note whether it's "film yourself," "stock/AI clip," or "screen recording."
+Keep it to one shot per major beat (roughly 4–7 shots total). Also list 2–3 GENERIC B-ROLL options that work as filler over any line (e.g. tools on a workbench, driving to a job, typing on a laptop). End with a quick text-to-video PROMPT for an AI video tool that captures the overall vibe, with no text or logos in the footage.
+
+Keep everything in the ARD voice throughout.`;
+}
+async function commitIdea(){
+  const day=document.getElementById('useDay').value;
+  const hook=document.getElementById('useHook').value;
+  const len=document.getElementById('useLen').value;
+  const who=document.getElementById('useWho').value;
+  const slot=openSlot(day, pendingIdea.s);
+  if(slot===null){ toast(fmtShort(day)+' already has 3 — pick another day'); return; }
+  const it=newItem(day, slot); it.title=pendingIdea.t;
+  state.items.push(it); await saveState();
+  focusDate(day);
+  const prompt=buildPrompt(pendingIdea.t, hook, len, who);
+  showPromptResult(prompt, 'Added to '+fmtShort(day)+' as a draft.');
+}
+function justCopyIdea(){
+  const hook=document.getElementById('useHook').value;
+  const len=document.getElementById('useLen').value;
+  const who=document.getElementById('useWho').value;
+  const prompt=buildPrompt(pendingIdea.t, hook, len, who);
+  showPromptResult(prompt, '');
+}
+function showPromptResult(prompt, note){
+  modal(`<h3>Your prompt is ready</h3>
+    <div class="screen-sub" style="margin-bottom:12px">${note?esc(note)+' ':''}Copy the text below and paste it into a Claude chat (in your ARD project) to get the full package.</div>
+    <div class="field"><textarea id="promptOut" rows="12" readonly style="font-size:13px">${esc(prompt)}</textarea></div>
+    <button class="btn btn-primary" onclick="doCopy()">Copy prompt</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeModal();go('week')">Done → my plan</button>`);
+  setTimeout(()=>{ const ta=document.getElementById('promptOut'); if(ta){ ta.focus(); ta.select(); } }, 80);
+}
+function doCopy(){
+  const ta=document.getElementById('promptOut'); if(!ta) return;
+  ta.focus(); ta.select(); try{ ta.setSelectionRange(0, ta.value.length); }catch(e){}
+  let ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(ta.value).then(()=>{}).catch(()=>{}); }
+  toast(ok?'Copied — paste into Claude':'Text selected — long-press and Copy');
+}
+function openBlank(){
+  const audOpts = AUDIENCES.map(a=>`<option>${a}</option>`).join('');
+  modal(`<h3>Custom idea</h3>
+    <div class="field"><label>Your idea (one line)</label><input id="blankText" placeholder="What's this video about?"></div>
+    <div class="field"><label>Who is this for?</label><select id="blankWho">${audOpts}</select></div>
+    <div class="field"><label>Slot type</label><select id="blankSlot"><option value="1">Tip / Education</option><option value="2">Story / Observation</option><option value="3">Proof / CTA</option></select></div>
+    <div class="field"><label>Add to which day?</label><select id="blankDay">${dayOptions()}</select></div>
+    <div class="field"><label>Hook style</label><select id="blankHook"><option>question</option><option>stat</option><option>call out the viewer</option><option selected>name a common mistake</option></select></div>
+    <button class="btn btn-primary" onclick="commitBlank()">Add to plan & copy prompt</button>`);
+}
+function focusDate(ds){
+  // make the Plan view land on the date an item was just added to
+  if(weekView==='week'){ weekStart = mondayOf(ds); }
+  else { const d=parseISO(ds); monthCur={y:d.getFullYear(), m:d.getMonth()}; selectedDate=ds; }
+}
+async function commitBlank(){
+  const t=document.getElementById('blankText').value.trim();
+  if(!t){ toast('Type your idea first'); return; }
+  const slotPref=parseInt(document.getElementById('blankSlot').value);
+  const day=document.getElementById('blankDay').value;
+  const hook=document.getElementById('blankHook').value;
+  const who=document.getElementById('blankWho').value;
+  const slot=openSlot(day, slotPref);
+  if(slot===null){ toast(fmtShort(day)+' already has 3 — pick another day'); return; }
+  const it=newItem(day, slot); it.title=t; state.items.push(it); await saveState();
+  focusDate(day);
+  const prompt=buildPrompt(t, hook, 60, who);
+  showPromptResult(prompt, 'Added to '+fmtShort(day)+' as a draft.');
+}
+
+function renderGoals(){
+  const earned=computeEarned();
+  const earnedCount=BADGES.filter(b=>state.badges[b.id]).length;
+  // this week progress
+  const wkDates=[]; for(let i=0;i<7;i++) wkDates.push(addDays(weekStart,i));
+  const wkSet=new Set(wkDates);
+  const wkTitled=state.items.filter(i=>i.title && wkSet.has(i.date));
+  const wkPosted=wkTitled.filter(i=>PLATFORMS.every(p=>i.status[p.k]));
+  const wkPct = wkTitled.length ? Math.round(wkPosted.length/wkTitled.length*100) : 0;
+  const totalPosted=postedCards().length;
+
+  let html=`<div class="screen">
+    <div class="screen-title">Goals</div>
+    <div class="screen-sub">Ship content, earn badges, watch your progress stack up.</div>
+    <div class="stat-row">
+      <div class="stat"><div class="num">${earnedCount}</div><div class="lbl">Badges</div></div>
+      <div class="stat"><div class="num">${totalPosted}</div><div class="lbl">Posted</div></div>
+      <div class="stat"><div class="num">${longestPostStreak()}</div><div class="lbl">Best streak</div></div>
+    </div>
+
+    <div class="goal-card">
+      <div class="goal-card-top"><span class="goal-card-title">This week's plan</span><span class="goal-card-pct">${wkPct}%</span></div>
+      <div class="prog-track"><div class="prog-fill" style="width:${wkPct}%"></div></div>
+      <div class="goal-card-note">${wkTitled.length ? `${wkPosted.length} of ${wkTitled.length} posts shipped${wkPosted.length<wkTitled.length?` — ${wkTitled.length-wkPosted.length} to go for the 🏆 Full Week badge`:` — week complete! 🎉`}` : 'No posts planned this week yet. Add some on the Plan tab.'}</div>
+    </div>
+
+    <div class="cat-head"><span class="cdot" style="background:var(--gold)"></span>Badges</div>
+    <div class="badge-grid">`;
+  BADGES.forEach(b=>{
+    const got=!!state.badges[b.id];
+    let progTxt='';
+    if(!got && b.prog){ const p=b.prog(); progTxt=`${Math.min(p.c,p.t)}/${p.t}`; }
+    html+=`<div class="badge ${got?'got':'locked'}">
+      <div class="badge-icon">${b.icon}</div>
+      <div class="badge-name">${b.name}</div>
+      <div class="badge-desc">${esc(b.desc)}</div>
+      ${got?`<div class="badge-status earned">Earned ✓</div>`:`<div class="badge-status">${progTxt||'Locked'}</div>`}
+    </div>`;
+  });
+  html+=`</div></div>`;
+  return html;
+}
+
+function renderTrack(){
+  const items=state.items.filter(i=>i.title).sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:a.slot-b.slot);
+  if(!items.length){ return `<div class="screen"><div class="screen-title">Track</div>
+    <div class="empty-note">Nothing to track yet.<div style="margin-top:20px"><button class="btn btn-primary" onclick="go('ideas')">Browse ideas</button></div></div></div>`; }
+  let html=`<div class="screen"><div class="screen-title">Track Posting</div>
+    <div class="screen-sub">Tap a post to check off filming and each platform as you publish.</div>`;
+  items.forEach(it=>{ const done=PLATFORMS.filter(p=>it.status[p.k]).length;
+    const dots=PLATFORMS.map(p=>`<span class="dot ${it.status[p.k]?'on '+p.cls:''}">${p.label}</span>`).join('');
+    html+=`<div class="card" onclick="openTrack('${it.id}')">
+      <div class="card-top"><span class="slot-tag slot-${it.slot}">${fmtShort(it.date)}</span>
+        <span class="dot ${done===6?'on gen':''}">${done}/6 posted</span></div>
+      <div class="card-title">${esc(it.title)}</div><div class="mini-dots">${dots}</div></div>`; });
+  html+=`</div>`;
+  return html;
+}
+
+function modal(inner){ let m=document.getElementById('modalRoot'); if(!m){m=document.createElement('div');m.id='modalRoot';document.body.appendChild(m);}
+  m.innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-grip"></div>${inner}</div></div>`; }
+function closeModal(){ const m=document.getElementById('modalRoot'); if(m)m.innerHTML=''; }
+
+function openNew(date,slot){ const it=newItem(date,slot); state.items.push(it); showEditForm(it,true); }
+function openEdit(id){ showEditForm(getItem(id),false); }
+function showEditForm(it,isNew){
+  modal(`<h3>${isNew?'New':'Edit'} content</h3>
+    <div class="screen-sub" style="margin-bottom:14px">${fmtShort(it.date)} · ${SLOTS[it.slot]}</div>
+    <div class="edit-scroll">
+    <div class="field"><label>Slot type</label>
+      <div class="seg" id="segSlot">
+        <button class="${it.slot==1?'sel-1':''}" onclick="setSlot('${it.id}',1)">Tip</button>
+        <button class="${it.slot==2?'sel-2':''}" onclick="setSlot('${it.id}',2)">Story</button>
+        <button class="${it.slot==3?'sel-3':''}" onclick="setSlot('${it.id}',3)">Proof / CTA</button>
+      </div></div>
+    <div class="field"><label>Idea / title</label><input id="fTitle" placeholder="One line — what's this about?" value="${esc(it.title)}"></div>
+    <div class="field"><label>Screen hook (big on-screen text)</label><input id="fScreen" placeholder="ALL CAPS, STOPS THE SCROLL" value="${esc(it.screenHook)}"></div>
+    <div class="field"><label>Hook (first 3 seconds spoken)</label><textarea id="fHook" rows="2" placeholder="Opening line you say out loud">${esc(it.hook)}</textarea></div>
+    <div class="field" style="margin-bottom:4px"><label>Script (word-for-word)</label><textarea id="fScript" rows="7" placeholder="Paste the full script here. Keep [PAUSE] and [HOLD UP TEXT] cues.">${esc(it.script)}</textarea></div>
+    </div>
+    <div class="edit-actions">
+      <button class="btn btn-primary" onclick="saveEdit('${it.id}')">Save</button>
+      <button class="btn btn-ghost" onclick="deleteItem('${it.id}')" style="color:var(--tiktok)">Delete</button></div>`);
+}
+function setSlot(id,s){ getItem(id).slot=s; document.querySelectorAll('#segSlot button').forEach((b,i)=>{b.className=(i+1===s)?'sel-'+s:'';}); }
+async function saveEdit(id){ const it=getItem(id);
+  it.title=document.getElementById('fTitle').value.trim();
+  it.screenHook=document.getElementById('fScreen').value.trim();
+  it.hook=document.getElementById('fHook').value.trim();
+  it.script=document.getElementById('fScript').value.trim();
+  it.status.script=!!it.script; it.status.screenHook=!!it.screenHook;
+  if(!it.title) state.items=state.items.filter(x=>x.id!==id);
+  await saveState(); closeModal(); render(); await celebrateNewBadges(); }
+async function deleteItem(id){ state.items=state.items.filter(x=>x.id!==id); await saveState(); closeModal(); render(); toast('Deleted'); }
+
+function openTrack(id){ const it=getItem(id);
+  const prep=PREP.map(p=>`<div class="check-row ${it.status[p.k]?'done':''}" onclick="toggleStatus('${id}','${p.k}')"><div class="check-box">${it.status[p.k]?'✓':''}</div><span class="cr-label">${p.label}</span></div>`).join('');
+  const posts=PLATFORMS.map(p=>`<div class="check-row ${it.status[p.k]?'done':''}" onclick="toggleStatus('${id}','${p.k}')"><div class="check-box">${it.status[p.k]?'✓':''}</div><span class="cr-label">${p.label}</span><span class="cr-dot" style="background:var(--${p.cls})"></span></div>`).join('');
+  modal(`<h3>${esc(it.title)}</h3><div class="screen-sub" style="margin-bottom:16px">${fmtShort(it.date)} · ${SLOTS[it.slot]}</div>
+    <div class="track-section"><h4>Prep</h4>${prep}</div>
+    <div class="track-section"><h4>Posted to</h4>${posts}</div>
+    <button class="btn btn-primary" onclick="closeModal();render()" style="margin-top:6px">Done</button>`); }
+async function toggleStatus(id,key){ const it=getItem(id); it.status[key]=!it.status[key]; await saveState(); const fired=await celebrateNewBadges(); if(!fired) openTrack(id); }
+
+function openImport(){ modal(`<h3>Bulk import scripts</h3>
+  <div class="screen-sub" style="margin-bottom:12px">Paste multiple scripts at once. Separate each with a line containing only <b>---</b>. Use <b>DATE: YYYY-MM-DD</b> (or a weekday name for this week).</div>
+  <div class="prompt-card"><div class="pc-text">DATE: ${todayISO()}<br>SLOT: 1<br>TITLE: Missed calls lose jobs<br>SCREENHOOK: THEY WERE READY TO PAY<br>HOOK: You just lost a customer...<br>SCRIPT: full script...<br>---<br>DATE: ${addDays(todayISO(),1)}<br>SLOT: 2<br>...</div></div>
+  <div class="field"><textarea id="bulkBox" rows="9" placeholder="Paste here..."></textarea></div>
+  <button class="btn btn-primary" onclick="runImport()">Import</button>`); }
+async function runImport(){ const raw=document.getElementById('bulkBox').value.trim(); if(!raw){toast('Nothing to import');return;}
+  const blocks=raw.split(/\n\s*---\s*\n/); let added=0; const thisMon=mondayOf(todayISO());
+  blocks.forEach(b=>{ const get=re=>{const mm=b.match(re);return mm?mm[1].trim():'';};
+    let date=get(/DATE:\s*(\d{4}-\d{2}-\d{2})/i);
+    if(!date){ const dayName=get(/DAY:\s*([A-Za-z]+)/i); const idx=WD_FULL.findIndex(d=>d.toLowerCase()===dayName.toLowerCase()); if(idx>=0) date=addDays(thisMon, idx); }
+    const slotR=get(/SLOT:\s*(\d)/i), title=get(/TITLE:\s*(.+)/i);
+    const screen=get(/SCREENHOOK:\s*(.+)/i), hook=get(/HOOK:\s*(.+)/i);
+    const sm=b.match(/SCRIPT:\s*([\s\S]+)/i); const script=sm?sm[1].trim():'';
+    if(date&&title){ const slot=openSlot(date, parseInt(slotR)||1)||(parseInt(slotR)||1);
+      const it=newItem(date,slot); it.title=title; it.screenHook=screen; it.hook=hook; it.script=script;
+      it.status.script=!!script; it.status.screenHook=!!screen; state.items.push(it); added++; } });
+  await saveState(); closeModal(); go('week'); toast(added?('Imported '+added+' script'+(added>1?'s':'')):'No valid blocks found'); }
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function toast(msg){ const old=document.getElementById('toast'); if(old)old.remove();
+  const d=document.createElement('div'); d.id='toast'; d.className='toast'; d.textContent=msg; document.body.appendChild(d); setTimeout(()=>d.remove(),2200); }
+function confirmReset(){ modal(`<h3>Clear everything?</h3><div class="screen-sub" style="margin-bottom:16px">This deletes all ideas, scripts, and tracking across every date. Can't be undone.</div>
+  <div class="btn-row"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+  <button class="btn btn-primary" style="background:var(--tiktok);color:#fff" onclick="doReset()">Clear everything</button></div>`); }
+async function doReset(){ state={items:[],badges:{}}; await saveState(); closeModal(); go('week'); toast('Cleared'); }
+
+// ---------- auth ----------
+function openLogin(msg){
+  modal(`<h3>Sign in to sync</h3>
+    <div class="screen-sub" style="margin-bottom:14px">${msg?esc(msg)+' ':''}Use the same email on every device to share your plan. New here? Enter an email and password and tap Create account.</div>
+    <div class="field"><label>Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="you@email.com"></div>
+    <div class="field"><label>Password</label><input id="authPass" type="password" autocomplete="current-password" placeholder="At least 6 characters"></div>
+    <button class="btn btn-primary" onclick="doSignIn()">Sign in</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="doSignUp()">Create account</button>
+    <button class="btn btn-ghost" style="margin-top:10px;color:var(--ink-faint)" onclick="closeModal()">Use on this device only</button>`);
+}
+async function doSignUp(){
+  if(!sb){ toast('Sync unavailable here'); return; }
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  if(!email||pass.length<6){ toast('Enter email + 6+ char password'); return; }
+  const { data, error } = await sb.auth.signUp({ email, password: pass });
+  if(error){ toast(error.message); return; }
+  if(data.session){ sbUser=data.user; await afterLogin(true); }
+  else { toast('Check your email to confirm, then sign in'); }
+}
+async function doSignIn(){
+  if(!sb){ toast('Sync unavailable here'); return; }
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  if(!email||!pass){ toast('Enter your email and password'); return; }
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if(error){ toast(error.message); return; }
+  sbUser=data.user; await afterLogin(false);
+}
+async function afterLogin(isNew){
+  closeModal();
+  // If this device already has local content and the cloud is empty, push it up.
+  if(isNew && state.items && state.items.length){ await saveState(); }
+  else { await loadState(); }
+  render(); updateSyncPill('ok'); toast('Synced to your account');
+}
+async function doSignOut(){
+  if(sb) { try{ await sb.auth.signOut(); }catch(e){} }
+  sbUser=null;
+  const p=document.getElementById('syncDot'); if(p){ p.textContent='Sign in'; p.style.color='var(--ink-dim)'; }
+  toast('Signed out'); render();
+}
+function syncPillClick(){ if(sbUser) confirmSignOut(); else openLogin(); }
+function confirmSignOut(){ modal(`<h3>Signed in</h3><div class="screen-sub" style="margin-bottom:16px">Your plan is syncing to <b>${esc(sbUser.email||'your account')}</b>.</div>
+  <button class="btn btn-ghost" onclick="doSignOut();closeModal()" style="color:var(--tiktok)">Sign out</button>
+  <button class="btn btn-primary" style="margin-top:10px" onclick="closeModal()">Done</button>`); }
+
+(async function(){
+  weekStart = mondayOf(todayISO());
+  const t=new Date(); monthCur={y:t.getFullYear(), m:t.getMonth()};
+  // restore an existing Supabase session if present
+  if(sb){
+    try{ const { data } = await sb.auth.getSession(); if(data && data.session){ sbUser = data.session.user; } }catch(e){}
+  }
+  await loadState(); render();
+  // reflect auth state in the top pill
+  const p=document.getElementById('syncDot');
+  if(p){ if(sbUser){ p.textContent='☁ Synced'; p.style.color='var(--ok)'; } else { p.textContent='Sign in'; p.style.color='var(--ink-dim)'; } }
+})();
+</script>
