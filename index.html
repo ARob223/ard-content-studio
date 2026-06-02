@@ -55,6 +55,7 @@
   .slot-2 { background:rgba(157,140,255,.14); color:var(--purple); }
   .slot-3 { background:rgba(255,157,82,.14); color:var(--orange); }
   .card-title { font-weight:600; font-size:15px; line-height:1.3; margin:9px 0 4px; color:var(--ink); }
+  .card-file { font-size:11px; color:var(--ink-faint); font-family:ui-monospace,monospace; margin:2px 0 6px; word-break:break-all; }
 
   .mini-dots { display:flex; gap:5px; flex-wrap:wrap; margin-top:10px; }
   .dot { font-size:10px; font-weight:600; padding:3px 7px; border-radius:6px; background:var(--navy-3); color:var(--ink-faint); }
@@ -387,7 +388,7 @@ async function celebrateNewBadges(){
 }
 
 function newItem(date, slot){
-  return { id:'i'+Date.now()+Math.floor(Math.random()*999), date, slot, title:'', screenHook:'', hook:'', script:'',
+  return { id:'i'+Date.now()+Math.floor(Math.random()*999), date, slot, title:'', screenHook:'', hook:'', script:'', fileBase:'',
     status:{script:false,screenHook:false,filmed:false,edited:false,tiktok:false,igReel:false,igGraphic:false,facebook:false,ytShort:false,linkedin:false} };
 }
 function itemsForDate(d){ return state.items.filter(i=>i.date===d).sort((a,b)=>a.slot-b.slot); }
@@ -434,7 +435,9 @@ function slotCardsHTML(date){
       h+=`<div class="card" onclick="openEdit('${it.id}')">
         <div class="card-top"><span class="slot-tag slot-${slot}">${SLOTS[slot]}</span>
           <span class="dot ${it.script?'on gen':''}">${it.script?'★ Script':'no script'}</span></div>
-        <div class="card-title">${esc(it.title)}</div><div class="mini-dots">${dots}</div>
+        <div class="card-title">${esc(it.title)}</div>
+        ${it.fileBase?`<div class="card-file">📁 ${esc(it.fileBase)}.mp4</div>`:''}
+        <div class="mini-dots">${dots}</div>
         <div class="stage-row">
           <button class="stage-btn ${it.status.filmed?'on filmed':''}" onclick="event.stopPropagation();toggleFilmed('${it.id}')">${it.status.filmed?'✓ Filmed':'Filmed'}</button>
           <button class="stage-btn ${isPosted?'on posted':''}" onclick="event.stopPropagation();togglePosted('${it.id}')">${isPosted?'✓ Posted':'Posted'}</button>
@@ -605,12 +608,12 @@ function useIdea(idx){
         <option ${pendingIdea.hook==='name a common mistake'?'selected':''}>name a common mistake</option>
       </select></div>
     <div class="field"><label>Length</label><select id="useLen"><option>15</option><option>30</option><option selected>60</option><option>90</option></select></div>
-    <div class="helper" style="margin-bottom:14px">Tapping below adds this to your plan as a draft and builds one prompt covering the <b>Reels/TikTok script, LinkedIn post, image graphic, and a B-roll shot list</b>. Paste it into a Claude chat to get the whole package back.</div>
+    <div class="helper" style="margin-bottom:14px">Tapping below adds this to your plan as a draft and builds one prompt covering the <b>Reels/TikTok script (with a comment/DM CTA), LinkedIn post, three image graphics (portrait, landscape, square), a B-roll shot list, and a Google Drive filename</b>. Paste it into a Claude chat to get the whole package back.</div>
     <button class="btn btn-primary" onclick="commitIdea()">Add to plan & copy prompt</button>
     <button class="btn btn-ghost" style="margin-top:10px" onclick="justCopyIdea()">Just copy the prompt</button>
   `);
 }
-function buildPrompt(ideaText, hook, len, audience){
+function buildPrompt(ideaText, hook, len, audience, fileBase){
   return `${BRAND}
 
 I'm creating one piece of content from a single idea and repurposing it across platforms. Give me the full package below for this idea.
@@ -619,8 +622,9 @@ Idea: "${ideaText}"
 Who this is for: ${audience||'All local service businesses'}
 Hook style: ${hook}
 Length: ~${len} seconds of spoken content
+Suggested file base name: ${fileBase||'ard-content'}
 
-Speak directly to that audience throughout — use their world, their jobs, and the problems they actually run into.
+Speak directly to that audience throughout. Use their world, their jobs, and the problems they actually run into.
 
 Produce ALL of the following, with clear section headers:
 
@@ -629,22 +633,37 @@ SCREEN HOOK — big bold text, 1 line, all caps, stops the scroll
 HOOK — first 3 seconds spoken
 SCRIPT — word-for-word with [PAUSE] and [HOLD UP TEXT] cues
 ON-SCREEN TEXT — 3–5 overlays, under 6 words each
-CAPTION — full post copy with a soft CTA to ARD Solutions
+CAPTION — full post copy. End with a clear CTA that tells viewers to comment or DM a single trigger word. Pick a fitting ALL-CAPS word for this specific idea (e.g. SYSTEM, AUTOMATION, LEADS, GROWTH) and use it consistently in the caption and the spoken script's closing line. Example style: "Comment '[WORD]' and I'll send you how it works." Output this caption inside a plain code block (triple backticks) with REAL blank lines between thoughts, so it copy-pastes into Instagram without the spacing collapsing. The blank lines must be actual empty lines, not just visual spacing. Avoid long em dashes (—); use short separate sentences instead.
 HASHTAGS — 8–10 relevant tags
+FILE NAME — suggest a clean filename for this video for Google Drive, lowercase with hyphens, no spaces, starting with "${fileBase||'ard-content'}" and adding 2–3 keywords from the idea, ending in .mp4
 
 === 2. LINKEDIN POST ===
-Same idea, reworked for LinkedIn — professional but plainspoken, no fluff, no "excited to announce" energy. Use this structure:
-- Open with a strong scroll-stopping line (an observation, stat, or "the new [X] in your area is..." style hook).
-- Short punchy lines with line breaks between thoughts. No walls of text.
-- Include a list where it fits — use dashes (–) for the bullets (e.g. what the system does, what it eliminates). Lists are expected, not optional.
+Same idea, reworked for LinkedIn. Professional but plainspoken, no fluff, no "excited to announce" energy. Formatting rules:
+- Do NOT use long em dashes (—). Use short, separate sentences or a colon instead.
+- Put a blank line between every idea so it's easy to scan on a phone. No dense paragraphs.
+- Open with a strong scroll-stopping line.
+- Use a list where it fits, with hyphen (-) bullets, one per line (e.g. what the system does, what it eliminates). Lists are expected.
 - Build contrast (e.g. "No missed calls. No forgotten texts. No leads slipping through.").
-- End with a direct CTA or directive in the style of "If you want to [outcome], DM me '[WORD]'. I'll show you exactly how to set this up." Only end on a thought-provoking question instead if a question genuinely fits the idea better.
-- 2–3 hashtags max.
+- End with a direct CTA in the style of "If you want to [outcome], comment or DM '[WORD]' and I'll show you exactly how to set this up." Only end on a question instead if a question genuinely fits better.
+- 2 or 3 hashtags max.
+IMPORTANT — output the LinkedIn post inside a plain code block (triple backticks) with REAL blank lines between each thought. This makes it copy-paste cleanly into schedulers without the spacing collapsing. The blank lines must be actual empty lines in the text, not just visual spacing.
 
-=== 3. IMAGE GRAPHIC ===
-GRAPHIC TEXT — the headline, subline, and footer to put on a branded quote-card graphic sized for Instagram (vertical 4:5, 1080x1350). Use the ARD brand palette: mint green #BCFFCE, royal blue (#4169E1), black, and white. Suggest which colors go where (background, headline, accent) for strong contrast.
-IMAGE PROMPT — a text-to-image prompt for a photo-based alternative. MUST be vertical portrait, 4:5 aspect ratio (1080x1350), built for Instagram. Compose it so the top half is clean negative space for the headline text overlay, with the subject in the lower portion. No text or logos in the image itself. End the prompt with "--ar 4:5, vertical portrait orientation".
-CANVA NOTES — quick guidance on laying it out in Canva using a 1080x1350 (4:5) portrait canvas and the brand colors above (mint green #BCFFCE, royal blue, black, white): headline top, subline below it, footer bar with ardsolutions.net at the bottom.
+=== 3. IMAGE GRAPHICS ===
+Give graphic text and an image prompt for THREE sizes, all based on this script. Use the ARD brand palette throughout: mint green #BCFFCE, royal blue (#4169E1), black, and white.
+
+3a. INSTAGRAM PORTRAIT (1080x1350, 4:5)
+- GRAPHIC TEXT: headline, subline, footer (ardsolutions.net). Note which colors go where for strong contrast.
+- IMAGE PROMPT: photo-based, vertical portrait 4:5, top half clean negative space for the headline, subject in the lower portion, no text or logos in the image. End with "--ar 4:5, vertical portrait orientation".
+
+3b. LANDSCAPE (1080x880)
+- GRAPHIC TEXT: headline, subline, footer, laid out for a wide format.
+- IMAGE PROMPT: photo-based, landscape, leave clean negative space on one side for the text, no text or logos. End with "--ar 1080:880, landscape orientation".
+
+3c. SQUARE (1080x1080, 1:1)
+- GRAPHIC TEXT: a short, punchy quote-card version pulled straight from the script's strongest line, plus footer.
+- IMAGE PROMPT: photo-based square, centered composition with negative space for the text, no text or logos. End with "--ar 1:1, square orientation".
+
+CANVA NOTES — quick guidance for building all three in Canva using the brand colors above.
 
 === 4. B-ROLL / VIDEO SHOT LIST ===
 A shot-by-shot B-roll plan that follows the script beat by beat, so the talking-head footage can be cut over with supporting visuals. For each beat:
@@ -655,6 +674,10 @@ Keep it to one shot per major beat (roughly 4–7 shots total). Also list 2–3 
 
 Keep everything in the ARD voice throughout.`;
 }
+function fileBaseFor(date, slot, title){
+  const slug=(title||'content').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').split('-').slice(0,4).join('-');
+  return `ard-${date}-slot${slot}-${slug}`;
+}
 async function commitIdea(){
   const day=document.getElementById('useDay').value;
   const hook=document.getElementById('useHook').value;
@@ -663,16 +686,18 @@ async function commitIdea(){
   const slot=openSlot(day, pendingIdea.s);
   if(slot===null){ toast(fmtShort(day)+' already has 3 — pick another day'); return; }
   const it=newItem(day, slot); it.title=pendingIdea.t;
+  it.fileBase=fileBaseFor(day, slot, pendingIdea.t);
   state.items.push(it); await saveState();
   focusDate(day);
-  const prompt=buildPrompt(pendingIdea.t, hook, len, who);
+  const prompt=buildPrompt(pendingIdea.t, hook, len, who, it.fileBase);
   showPromptResult(prompt, 'Added to '+fmtShort(day)+' as a draft.');
 }
 function justCopyIdea(){
   const hook=document.getElementById('useHook').value;
   const len=document.getElementById('useLen').value;
   const who=document.getElementById('useWho').value;
-  const prompt=buildPrompt(pendingIdea.t, hook, len, who);
+  const fb=fileBaseFor(todayISO(), pendingIdea.s, pendingIdea.t);
+  const prompt=buildPrompt(pendingIdea.t, hook, len, who, fb);
   showPromptResult(prompt, '');
 }
 function showPromptResult(prompt, note){
@@ -714,9 +739,9 @@ async function commitBlank(){
   const who=document.getElementById('blankWho').value;
   const slot=openSlot(day, slotPref);
   if(slot===null){ toast(fmtShort(day)+' already has 3 — pick another day'); return; }
-  const it=newItem(day, slot); it.title=t; state.items.push(it); await saveState();
+  const it=newItem(day, slot); it.title=t; it.fileBase=fileBaseFor(day, slot, t); state.items.push(it); await saveState();
   focusDate(day);
-  const prompt=buildPrompt(t, hook, 60, who);
+  const prompt=buildPrompt(t, hook, 60, who, it.fileBase);
   showPromptResult(prompt, 'Added to '+fmtShort(day)+' as a draft.');
 }
 
@@ -811,6 +836,7 @@ async function saveEdit(id){ const it=getItem(id);
   it.hook=document.getElementById('fHook').value.trim();
   it.script=document.getElementById('fScript').value.trim();
   it.status.script=!!it.script; it.status.screenHook=!!it.screenHook;
+  if(it.title && !it.fileBase) it.fileBase=fileBaseFor(it.date, it.slot, it.title);
   if(!it.title) state.items=state.items.filter(x=>x.id!==id);
   await saveState(); closeModal(); render(); await celebrateNewBadges(); }
 async function deleteItem(id){ state.items=state.items.filter(x=>x.id!==id); await saveState(); closeModal(); render(); toast('Deleted'); }
