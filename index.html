@@ -269,6 +269,20 @@ const IDEAS = [
   {s:3, n:'all', hook:'stat', t:'How an owner filled their calendar without chasing DMs'},
 ];
 const AUDIENCES = ['All local service businesses','Contractors / general construction','Plumbers','Electricians','HVAC companies','Roofers','Lawn care & landscaping','Cleaning services','Pest control','Auto repair shops','Personal trainers & gyms','Salons & barbershops','Med spas / dental / clinics','Real estate agents','Churches & nonprofits'];
+const YT_IDEAS = [
+  'How local service businesses can get more leads without spending more on ads',
+  'The system that books jobs while you sleep (full walkthrough)',
+  'Why your competitors outrank you on Google and how to fix it',
+  'I reviewed 5 local business websites. Here is what is costing them customers.',
+  'How to never miss a lead again: the full automation setup explained',
+  'The 4-stack system that runs a local business 24/7, start to finish',
+  'How to set up speed-to-lead for your business step by step',
+  'Reviews on autopilot: how to get more 5-star reviews without the awkward ask',
+  'From invisible to fully booked: a local business growth roadmap',
+  'What I would do first if I were starting a local service business today',
+  'How to turn your phone from a distraction into a lead machine',
+  'The real reason local businesses lose customers (and the fix)',
+];
 const NICHE_TO_AUDIENCE = {all:'All local service businesses', contractor:'Contractors / general construction', lawn:'Lawn care & landscaping', trainer:'Personal trainers & gyms', church:'Churches & nonprofits'};
 
 let state = { items: [], badges: {} };
@@ -278,6 +292,8 @@ let weekStart;
 let monthCur;
 let selectedDate = null;
 let openCat = null;
+let ideaMode = 'short';
+let pendingYT = null;
 let pendingIdea = null;
 
 function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -536,7 +552,23 @@ function selectDay(ds){ selectedDate = (selectedDate===ds? null : ds); render();
 function renderIdeas(){
   let html = `<div class="screen">
     <div class="screen-title">Idea Library</div>
-    <div class="screen-sub">Built from your voice and offer. Pick a type below, then tap an idea — you'll choose who it's for on the next screen.</div>`;
+    <div class="vtoggle" style="margin-top:10px">
+      <button class="${ideaMode==='short'?'on':''}" onclick="setIdeaMode('short')">Short-form</button>
+      <button class="${ideaMode==='youtube'?'on':''}" onclick="setIdeaMode('youtube')">YouTube</button>
+    </div>`;
+  html += ideaMode==='short' ? renderShortIdeas() : renderYouTubeIdeas();
+  html += `</div>`;
+  return html;
+}
+function setIdeaMode(m){ ideaMode=m; render(); window.scrollTo(0,0); }
+
+function renderShortIdeas(){
+  let html = `<div class="screen-sub">Pick a type, then tap an idea — you'll choose who it's for next. Or start with what's trending.</div>`;
+  html += `<div class="idea-card" onclick="useShortTrending()" style="border-color:var(--gold-dim)">
+      <div class="ic-top"><span class="slot-tag" style="background:rgba(255,176,31,.16);color:var(--gold)">🔥 Trending</span></div>
+      <div class="ic-text">What's happening now — let Claude research a timely angle for your audience and build a short-form script from it</div>
+      <div class="ic-go">Find a trending angle →</div></div>`;
+  html += `<div class="cat-head"><span class="cdot" style="background:var(--gold)"></span>Evergreen ideas</div>`;
   [1,2,3].forEach(slot=>{
     const list = IDEAS.filter(i=>i.s===slot);
     if(!list.length) return;
@@ -565,7 +597,23 @@ function renderIdeas(){
       <button class="btn btn-ghost btn-sm" onclick="openImport()">Bulk import scripts</button>
       <button class="btn btn-ghost btn-sm" onclick="openBlank()">Blank custom idea</button></div>`;
   html += `<button class="btn btn-ghost btn-sm" onclick="confirmReset()" style="color:var(--ink-faint)">Reset / clear everything</button>`;
-  html += `</div>`;
+  return html;
+}
+
+function renderYouTubeIdeas(){
+  let html = `<div class="screen-sub">Long-form, one solid video a month. Tap an idea — you'll pick the audience and length next, then get the thumbnail, full script, editing direction, and posting kit.</div>`;
+  html += `<div class="idea-card" onclick="useYouTubeTrending()" style="border-color:var(--yt)">
+      <div class="ic-top"><span class="slot-tag" style="background:rgba(255,90,82,.16);color:var(--yt)">🔥 Trending</span></div>
+      <div class="ic-text">What's happening now — let Claude find a timely, news-pegged video for your audience this month</div>
+      <div class="ic-go" style="color:var(--yt)">Find a trending angle →</div></div>`;
+  html += `<div class="cat-head"><span class="cdot" style="background:var(--yt)"></span>Evergreen ideas</div>`;
+  YT_IDEAS.forEach((idea,idx)=>{
+    html += `<div class="idea-card" onclick="useYouTube(${idx})">
+      <div class="ic-top"><span class="slot-tag" style="background:rgba(255,90,82,.16);color:var(--yt)">YouTube</span></div>
+      <div class="ic-text">${esc(idea)}</div>
+      <div class="ic-go" style="color:var(--yt)">Use this idea →</div></div>`;
+  });
+  html += `<button class="btn btn-ghost btn-sm" onclick="openBlankYouTube()" style="margin-top:6px">Blank custom YouTube idea</button>`;
   return html;
 }
 function toggleCat(s){ openCat = (openCat===s ? null : s); render(); }
@@ -581,6 +629,94 @@ function shuffleIdea(){
     <button class="btn btn-primary" onclick="useIdea(${idx})">Yes — use this idea →</button>
     <button class="btn btn-ghost" style="margin-top:10px" onclick="shuffleIdea()">🎲 Shuffle again</button>
   `);
+}
+
+// ---------- YouTube long-form ----------
+function useYouTube(idx){
+  pendingYT = { t: YT_IDEAS[idx], trending:false };
+  showYouTubeForm();
+}
+function useYouTubeTrending(){
+  pendingYT = { t:'', trending:true };
+  showYouTubeForm();
+}
+function openBlankYouTube(){
+  modal(`<h3>Custom YouTube idea</h3>
+    <div class="field"><label>Your video idea (one line)</label><input id="ytBlank" placeholder="What's the video about?"></div>
+    <button class="btn btn-primary" onclick="commitBlankYouTube()">Continue</button>`);
+}
+function commitBlankYouTube(){
+  const t=document.getElementById('ytBlank').value.trim();
+  if(!t){ toast('Type your idea first'); return; }
+  pendingYT={ t, trending:false }; showYouTubeForm();
+}
+function showYouTubeForm(){
+  const audOpts = AUDIENCES.map(a=>`<option>${a}</option>`).join('');
+  const isTrend = pendingYT.trending;
+  modal(`
+    <h3>${isTrend?'🔥 Trending YouTube video':'YouTube video'}</h3>
+    <div class="idea-card" style="cursor:default;margin:10px 0 16px">
+      <div class="ic-top"><span class="slot-tag" style="background:rgba(255,90,82,.16);color:var(--yt)">${isTrend?'🔥 Trending':'YouTube'}</span></div>
+      <div class="ic-text">${isTrend?'Claude will search for what is timely for this audience this month and pitch news-pegged concepts before scripting.':esc(pendingYT.t)}</div></div>
+    <div class="field"><label>Who is this for?</label><select id="ytWho">${audOpts}</select></div>
+    <div class="field"><label>Target length</label><select id="ytLen"><option>5</option><option selected>8</option><option>10</option><option>12</option><option>15</option></select></div>
+    <div class="helper" style="margin-bottom:14px">Builds one prompt covering the <b>${isTrend?'timely angle, thumbnail, full script, editing direction, and posting kit':'thumbnail, full script, editing/engagement direction, and the posting kit (title, description, keywords)'}</b>. Paste it into a Claude chat <b>with web search on</b> to get the whole package.</div>
+    <button class="btn btn-primary" onclick="buildYouTube()">Copy YouTube prompt</button>
+  `);
+}
+function buildYouTube(){
+  const who=document.getElementById('ytWho').value;
+  const mins=document.getElementById('ytLen').value;
+  showPromptResult(buildYouTubePrompt(pendingYT.t, who, mins, pendingYT.trending), '');
+}
+function buildYouTubePrompt(ideaText, audience, mins, trending){
+  const topicLine = trending
+    ? `Topic: a TIMELY, news-pegged video for this audience. There is no fixed idea yet — you will choose it from current events (see step 0).`
+    : `Video idea: "${ideaText}"`;
+  const step0 = trending
+    ? `=== 0. FIND THE TIMELY ANGLE (do this first) ===
+Search the web for what's happening RIGHT NOW that affects this audience: new tools, AI developments, Google/Meta/platform changes, local-business or industry news, economic shifts, seasonal trends. Pull from the last few weeks where possible.
+Then propose the single strongest news-pegged video concept (with 2 backup options), and briefly say why it's timely. Build the rest of the package (sections 1-5) around the concept you chose. Cite the sources/dates you used.
+
+`
+    : `=== 0. CURRENT-CONTEXT CHECK (do this first) ===
+Search the web for any recent developments relevant to this topic and audience (new tools, platform or algorithm changes, fresh stats, industry news from the last few weeks). If something current strengthens the video, weave it in and mention it. If nothing relevant is current, proceed with the evergreen take. Cite anything you use.
+
+`;
+  return `${BRAND}
+
+I'm creating ONE long-form YouTube video (this is monthly, authority-building content). Use web search to ground it in what's current, then give me the full package below.
+
+${topicLine}
+Who this is for: ${audience||'All local service businesses'}
+Target length: about ${mins} minutes
+
+Speak directly to that audience the whole way through. Teach generously, build trust, and lead naturally to ARD Solutions at the end. Produce ALL of the following with clear section headers:
+
+${step0}=== 1. THUMBNAIL ===
+- THUMBNAIL TEXT: 3-5 words, ALL CAPS, scroll-stopping and curiosity-driving (not clickbait-dishonest). High contrast.
+- IMAGE PROMPT: a text-to-image prompt for a 16:9 (1280x720) YouTube thumbnail that earns the click. Bold, clean, intriguing, with a clear focal subject and space for the text overlay. Use the ARD palette where it helps (mint green #BCFFCE, royal blue #4169E1, black, white). No text baked into the image itself. End with "--ar 16:9".
+
+=== 2. TITLE OPTIONS ===
+5 click-worthy titles, each under 60 characters, with the main keyword toward the front. Mix curiosity with clarity.
+
+=== 3. SCRIPT (~${mins} min) ===
+A full word-for-word long-form script, conversational and in the ARD voice. Structure it:
+- HOOK (first 15-30 seconds): grab attention and state the payoff so they keep watching.
+- INTRO: quick promise of what they'll learn and why it matters to them.
+- MAIN CONTENT: break into 3-5 clear chapters with headers. Teach real, useful steps.
+- CTA (end): invite them to take the next step with ARD Solutions, plus ask for like/subscribe.
+Mark approximate timestamps for each chapter. Pace it for roughly ${mins} minutes of speaking.
+
+=== 4. EDITING / ENGAGEMENT DIRECTION ===
+Go through the script and call out, at specific points, how to keep people watching all the way to the CTA. For each cue give the SCRIPT MOMENT (quote a few words) and the SUGGESTION, choosing from: add B-roll, drop an on-screen text graphic, show a screen recording / demo, insert a pattern interrupt (zoom, cut, location change), or add a chapter card. Aim for a cue every 20-40 seconds so it never feels static.
+
+=== 5. POSTING KIT ===
+- FINAL TITLE: the single strongest pick from section 2.
+- DESCRIPTION: output inside a plain code block (triple backticks) with REAL blank lines. Include a 2-3 sentence summary up top, then chapter timestamps, then a CTA line with ardsolutions.net. Spacing must survive copy-paste into YouTube.
+- KEYWORDS / TAGS: 12-15 search terms this audience actually types, mixing broad and specific, to maximize reach and discovery.
+
+Keep everything in the ARD voice throughout.`;
 }
 
 function dayOptions(){
@@ -608,12 +744,38 @@ function useIdea(idx){
         <option ${pendingIdea.hook==='name a common mistake'?'selected':''}>name a common mistake</option>
       </select></div>
     <div class="field"><label>Length</label><select id="useLen"><option>15</option><option>30</option><option selected>60</option><option>90</option></select></div>
-    <div class="helper" style="margin-bottom:14px">Tapping below adds this to your plan as a draft and builds one prompt covering the <b>Reels/TikTok script (with a comment/DM CTA), LinkedIn post, three image graphics (portrait, landscape, square), a B-roll shot list, and a Google Drive filename</b>. Paste it into a Claude chat to get the whole package back.</div>
+    <div class="helper" style="margin-bottom:14px">Tapping below adds this to your plan as a draft and builds one prompt covering the <b>Reels/TikTok script (with a comment/DM CTA), LinkedIn post, two image graphics (portrait + square), a text-to-video prompt, and a Google Drive filename</b>. Paste it into a Claude chat to get the whole package back.</div>
     <button class="btn btn-primary" onclick="commitIdea()">Add to plan & copy prompt</button>
     <button class="btn btn-ghost" style="margin-top:10px" onclick="justCopyIdea()">Just copy the prompt</button>
   `);
 }
-function buildPrompt(ideaText, hook, len, audience, fileBase){
+function useShortTrending(){
+  const audOpts = AUDIENCES.map(a=>`<option>${a}</option>`).join('');
+  modal(`<h3>🔥 Trending short-form</h3>
+    <div class="idea-card" style="cursor:default;margin:10px 0 16px">
+      <div class="ic-top"><span class="slot-tag" style="background:rgba(255,176,31,.16);color:var(--gold)">🔥 Trending</span></div>
+      <div class="ic-text">Claude will research what is timely for this audience right now, pick the best content type, and build the full short-form package.</div></div>
+    <div class="field"><label>Who is this for?</label><select id="trWho">${audOpts}</select></div>
+    <div class="field"><label>Length</label><select id="trLen"><option>15</option><option>30</option><option selected>60</option><option>90</option></select></div>
+    <div class="helper" style="margin-bottom:14px">Builds one prompt that researches a timely angle, then returns the <b>script, LinkedIn post, two graphics, text-to-video prompt, and filename</b>. Paste it into a Claude chat <b>with web search on</b>.</div>
+    <button class="btn btn-primary" onclick="buildShortTrending()">Copy trending prompt</button>`);
+}
+function buildShortTrending(){
+  const who=document.getElementById('trWho').value;
+  const len=document.getElementById('trLen').value;
+  const research = `=== 0. FIND THE TIMELY ANGLE (do this first) ===
+Search the web for what's happening RIGHT NOW that this audience would care about: new tools, AI developments, Google/Meta/platform changes, industry or local-business news, fresh stats or trends. Pull from the last few weeks where possible.
+Pick the single strongest angle for a short-form video, and decide which content type fits best:
+- Tip / Education (teach something, show a gap)
+- Story / Observation (what you experienced or noticed, and the lesson from it)
+- Proof / CTA (result, before/after, or a direct call to action)
+State the chosen angle, the content type, and cite the sources/dates you used. Then build the rest of the package around it.
+
+`;
+  const fb = fileBaseFor(todayISO(), 0, 'trending');
+  showPromptResult(buildPrompt('[choose from your research in step 0]', '[choose the hook that fits]', len, who, fb, research), '');
+}
+function buildPrompt(ideaText, hook, len, audience, fileBase, researchStep){
   return `${BRAND}
 
 I'm creating one piece of content from a single idea and repurposing it across platforms. Give me the full package below for this idea.
@@ -628,7 +790,8 @@ Speak directly to that audience throughout. Use their world, their jobs, and the
 
 Produce ALL of the following, with clear section headers:
 
-=== 1. REELS / TIKTOK SCRIPT ===
+${researchStep||''}=== 1. REELS / TIKTOK SCRIPT ===
+Build the script on this credibility framework so it lands as lived experience, not generic advice: lead with what I experienced or what I'm noticing out in the world, then the lesson or realization that came from it, then what it means for the viewer. The goal is to make the point stick — say it in a way the people who need to hear it will really feel, so they want to go deeper: watch more, join the AI brief, or book a call.
 SCREEN HOOK — big bold text, 1 line, all caps, stops the scroll
 HOOK — first 3 seconds spoken
 SCRIPT — word-for-word with [PAUSE] and [HOLD UP TEXT] cues
@@ -649,28 +812,20 @@ Same idea, reworked for LinkedIn. Professional but plainspoken, no fluff, no "ex
 IMPORTANT — output the LinkedIn post inside a plain code block (triple backticks) with REAL blank lines between each thought. This makes it copy-paste cleanly into schedulers without the spacing collapsing. The blank lines must be actual empty lines in the text, not just visual spacing.
 
 === 3. IMAGE GRAPHICS ===
-Give graphic text and an image prompt for THREE sizes, all based on this script. Use the ARD brand palette throughout: mint green #BCFFCE, royal blue (#4169E1), black, and white.
+Give graphic text and an image prompt for TWO sizes, both based on this script. Use the ARD brand palette throughout: mint green #BCFFCE, royal blue (#4169E1), black, and white.
 
 3a. INSTAGRAM PORTRAIT (1080x1350, 4:5)
 - GRAPHIC TEXT: headline, subline, footer (ardsolutions.net). Note which colors go where for strong contrast.
 - IMAGE PROMPT: photo-based, vertical portrait 4:5, top half clean negative space for the headline, subject in the lower portion, no text or logos in the image. End with "--ar 4:5, vertical portrait orientation".
 
-3b. LANDSCAPE (1080x880)
-- GRAPHIC TEXT: headline, subline, footer, laid out for a wide format.
-- IMAGE PROMPT: photo-based, landscape, leave clean negative space on one side for the text, no text or logos. End with "--ar 1080:880, landscape orientation".
-
-3c. SQUARE (1080x1080, 1:1)
+3b. SQUARE (1080x1080, 1:1)
 - GRAPHIC TEXT: a short, punchy quote-card version pulled straight from the script's strongest line, plus footer.
 - IMAGE PROMPT: photo-based square, centered composition with negative space for the text, no text or logos. End with "--ar 1:1, square orientation".
 
-CANVA NOTES — quick guidance for building all three in Canva using the brand colors above.
+CANVA NOTES — quick guidance for building both in Canva using the brand colors above.
 
-=== 4. B-ROLL / VIDEO SHOT LIST ===
-A shot-by-shot B-roll plan that follows the script beat by beat, so the talking-head footage can be cut over with supporting visuals. For each beat:
-- SCRIPT BEAT — the line or moment from the script this shot covers (quote a few words so it's easy to match).
-- SHOT — what to film or source (e.g. close-up of a phone ringing unanswered, hands working on a job, a calendar filling up). Favor simple shots an owner can capture on a phone.
-- TYPE — note whether it's "film yourself," "stock/AI clip," or "screen recording."
-Keep it to one shot per major beat (roughly 4–7 shots total). Also list 2–3 GENERIC B-ROLL options that work as filler over any line (e.g. tools on a workbench, driving to a job, typing on a laptop). End with a quick text-to-video PROMPT for an AI video tool that captures the overall vibe, with no text or logos in the footage.
+=== 4. TEXT-TO-VIDEO PROMPT ===
+A single text-to-video prompt for an AI video tool that captures the overall vibe of this script, for use as B-roll behind the talking head. No text or logos in the footage. Vertical orientation for Reels/TikTok.
 
 Keep everything in the ARD voice throughout.`;
 }
